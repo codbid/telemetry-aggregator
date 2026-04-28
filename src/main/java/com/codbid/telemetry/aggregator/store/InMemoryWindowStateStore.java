@@ -4,6 +4,8 @@ import com.codbid.telemetry.aggregator.config.AggregationProperties;
 import com.codbid.telemetry.aggregator.model.aggregation.AggregationKey;
 import com.codbid.telemetry.aggregator.model.aggregation.WindowState;
 import com.codbid.telemetry.aggregator.service.WindowCalculator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -15,6 +17,8 @@ import java.util.function.Supplier;
 
 @Component
 public class InMemoryWindowStateStore implements WindowStateStore{
+    private static final Logger logger = LoggerFactory.getLogger(InMemoryWindowStateStore.class);
+
     private final Map<AggregationKey, WindowState> storage = new ConcurrentHashMap<>();
 
     private final AggregationProperties aggregationProperties;
@@ -40,6 +44,8 @@ public class InMemoryWindowStateStore implements WindowStateStore{
 
     @Override
     public void deleteExpired(Instant now) {
+        int beforeSize = storage.size();
+
         storage.entrySet().removeIf( entry -> {
             AggregationKey key = entry.getKey();
             WindowState state = entry.getValue();
@@ -48,6 +54,12 @@ public class InMemoryWindowStateStore implements WindowStateStore{
 
             return windowCalculator.isExpired(state.getWindowStart(), retention, now);
         });
+
+        int deleted = beforeSize - storage.size();
+
+        if (deleted > 0) {
+            logger.info("Expired aggregation windows deleted: {}", deleted);
+        }
     }
 
     private Duration findRetentionByWindowName(String windowName) {

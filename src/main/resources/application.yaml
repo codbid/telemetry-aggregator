@@ -22,7 +22,7 @@ telemetry:
     windows:
       - name: "1m"
         duration: 1m
-        retention: 30m
+        retention: 2m
       - name: "5m"
         duration: 5m
         retention: 2h
