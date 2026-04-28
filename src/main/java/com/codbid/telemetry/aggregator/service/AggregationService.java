@@ -35,8 +35,10 @@ public class AggregationService {
     public void process(TelemetryEvent event) {
         validateEvent(event);
 
+        Instant now = Instant.now();
+
         for (AggregationProperties.WindowProperties window : aggregationProperties.getWindows()) {
-            processWindow(event, window);
+            processWindow(event, window, now);
         }
     }
 
@@ -55,12 +57,16 @@ public class AggregationService {
                 ).toList();
     }
 
-    public void processWindow(TelemetryEvent event, AggregationProperties.WindowProperties window) {
-        Instant windowStart = windowCalculator.calculateWindowStart(event.timestamp(), window.getDuration());
-        Instant windowEnd = windowCalculator.calculateWindowEnd(windowStart, window.getDuration());
+    public void processWindow(TelemetryEvent event, AggregationProperties.WindowProperties windowProperties, Instant now) {
+        Instant windowStart = windowCalculator.calculateWindowStart(event.timestamp(), windowProperties.getDuration());
+        Instant windowEnd = windowCalculator.calculateWindowEnd(windowStart, windowProperties.getDuration());
+
+        if (windowCalculator.isExpired(windowEnd, windowProperties.getRetention(), now)) {
+            return;
+        }
 
         AggregationKey key = new AggregationKey(
-                window.getName(),
+                windowProperties.getName(),
                 windowStart,
                 event.service(),
                 event.operation(),
