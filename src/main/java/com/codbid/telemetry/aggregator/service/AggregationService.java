@@ -3,6 +3,7 @@ package com.codbid.telemetry.aggregator.service;
 import com.codbid.telemetry.aggregator.config.AggregationProperties;
 import com.codbid.telemetry.aggregator.model.aggregation.AggregatedMetric;
 import com.codbid.telemetry.aggregator.model.aggregation.AggregationKey;
+import com.codbid.telemetry.aggregator.model.aggregation.LatestAggregateKey;
 import com.codbid.telemetry.aggregator.model.aggregation.WindowState;
 import com.codbid.telemetry.aggregator.model.event.TelemetryEvent;
 import com.codbid.telemetry.aggregator.store.WindowStateStore;
@@ -11,6 +12,8 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class AggregationService {
@@ -55,6 +58,21 @@ public class AggregationService {
                                 .thenComparing(AggregatedMetric::windowName)
                                 .thenComparing(metric -> metric.kind().name())
                 ).toList();
+    }
+
+    public List<AggregatedMetric> findLatestAggregates() {
+        return findAllAggregates()
+                .stream()
+                .collect(Collectors.toMap(
+                        LatestAggregateKey::from,
+                        Function.identity(),
+                        (first, second) -> first.windowStart().isAfter(second.windowStart())
+                                ? first
+                                : second
+                ))
+                .values()
+                .stream()
+                .toList();
     }
 
     public void processWindow(TelemetryEvent event, AggregationProperties.WindowProperties windowProperties, Instant now) {

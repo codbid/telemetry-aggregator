@@ -32,3 +32,13 @@ telemetry:
       - telemetry-all
       - telemetry-success
       - telemetry-error
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  prometheus:
+    metrics:
+      export:
+        enabled: true

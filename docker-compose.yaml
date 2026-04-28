@@ -1,0 +1,11 @@
+services:
+  prometheus:
+    image: prom/prometheus:v3.0.1
+    container_name: telemetry-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yaml:/etc/prometheus/prometheus.yaml:ro
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yaml"
+    restart: unless-stopped
