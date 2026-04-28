@@ -1,3 +1,17 @@
+server:
+  port: 8081
+
 spring:
   application:
     name: telemetry-aggregator
+
+telemetry:
+  aggregation:
+    cleanup-interval: 30s
+    windows:
+      - name: "1m"
+        duration: 1m
+        retention: 30m
+      - name: "5m"
+        duration: 5m
+        retention: 2h
