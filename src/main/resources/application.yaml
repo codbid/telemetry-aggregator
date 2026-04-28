@@ -5,6 +5,17 @@ spring:
   application:
     name: telemetry-aggregator
 
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: telemetry-aggregator
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    listener:
+      ack-mode: manual
+
 telemetry:
   aggregation:
     cleanup-interval: 30s
@@ -15,3 +26,9 @@ telemetry:
       - name: "5m"
         duration: 5m
         retention: 2h
+
+  kafka:
+    topics:
+      - telemetry-all
+      - telemetry-success
+      - telemetry-error
