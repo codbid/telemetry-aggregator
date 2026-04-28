@@ -1,6 +1,7 @@
 package com.codbid.telemetry.aggregator.service;
 
 import com.codbid.telemetry.aggregator.config.AggregationProperties;
+import com.codbid.telemetry.aggregator.model.aggregation.AggregatedMetric;
 import com.codbid.telemetry.aggregator.model.aggregation.AggregationKey;
 import com.codbid.telemetry.aggregator.model.aggregation.WindowState;
 import com.codbid.telemetry.aggregator.model.event.TelemetryEvent;
@@ -8,6 +9,8 @@ import com.codbid.telemetry.aggregator.store.WindowStateStore;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.Comparator;
+import java.util.List;
 
 @Service
 public class AggregationService {
@@ -15,21 +18,41 @@ public class AggregationService {
     private final AggregationProperties aggregationProperties;
     private final WindowCalculator windowCalculator;
     private final WindowStateStore windowStateStore;
+    private final AggregatedMetricCalculator metricCalculator;
 
     public AggregationService(
             AggregationProperties aggregationProperties,
             WindowCalculator windowCalculator,
-            WindowStateStore windowStateStore
+            WindowStateStore windowStateStore,
+            AggregatedMetricCalculator metricCalculator
     ) {
         this.aggregationProperties = aggregationProperties;
         this.windowCalculator = windowCalculator;
         this.windowStateStore = windowStateStore;
+        this.metricCalculator = metricCalculator;
     }
 
     public void process(TelemetryEvent event) {
         validateEvent(event);
 
+        for (AggregationProperties.WindowProperties window : aggregationProperties.getWindows()) {
+            processWindow(event, window);
+        }
+    }
 
+    public List<AggregatedMetric> findAllAggregates() {
+        return windowStateStore.findAll().stream()
+                .map(entry -> metricCalculator.calculate(entry.key(), entry.state()))
+                .sorted(
+                        Comparator
+                                .comparing(AggregatedMetric::windowStart)
+                                .reversed()
+                                .thenComparing(AggregatedMetric::environment)
+                                .thenComparing(AggregatedMetric::service)
+                                .thenComparing(AggregatedMetric::operation)
+                                .thenComparing(AggregatedMetric::windowName)
+                                .thenComparing(metric -> metric.kind().name())
+                ).toList();
     }
 
     public void processWindow(TelemetryEvent event, AggregationProperties.WindowProperties window) {
