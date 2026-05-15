@@ -31,9 +31,7 @@ public class AggregatedMetricCalculator {
         double p95 = percentileCalculator.calculate(durations, 95);
         double p99 = percentileCalculator.calculate(durations, 99);
 
-        double windowSeconds = Duration.between(state.getWindowStart(), state.getWindowEnd()).toSeconds();
-
-        double rps = windowSeconds <= 0 ? 0.0 : (double) requestsTotal / windowSeconds;
+        double rps = calculateRps(state);
 
         return new AggregatedMetric(
                 key.windowName(),
@@ -55,5 +53,19 @@ public class AggregatedMetricCalculator {
                 p99,
                 rps
         );
+    }
+
+    private double calculateRps(WindowState state) {
+        var now = java.time.Instant.now();
+
+        var effectiveEnd = now.isBefore(state.getWindowEnd())
+                ? now
+                : state.getWindowEnd();
+
+        double seconds = Duration
+                .between(state.getWindowStart(), effectiveEnd)
+                .toMillis() / 1000.0;
+
+        return seconds <= 0 ? 0.0 : (double) state.getRequestsTotal() / seconds;
     }
 }
